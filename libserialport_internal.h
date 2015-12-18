@@ -56,7 +56,7 @@
 #endif
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
-#include <IOKitLib.h>
+#include <IOKit/IOKitLib.h>
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <sys/syslimits.h>
