@@ -65,6 +65,9 @@
 #endif
 #ifdef __linux__
 #include <dirent.h>
+#ifdef __amd64__
+__asm__(".symver memcpy,memcpy@GLIBC_2.2.5");
+#endif
 #ifndef __ANDROID__
 #include "linux/serial.h"
 #endif
