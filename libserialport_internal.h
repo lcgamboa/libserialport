@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <stdbool.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
@@ -234,7 +235,7 @@ extern void (*sp_debug_handler)(const char *format, ...);
 SP_PRIV struct sp_port **list_append(struct sp_port **list, const char *portname);
 
 /* OS-specific Helper functions. */
-SP_PRIV enum sp_return get_port_details(struct sp_port *port);
+SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescriptors);
 SP_PRIV enum sp_return list_ports(struct sp_port ***list);
 
 #endif

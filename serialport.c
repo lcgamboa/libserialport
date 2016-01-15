@@ -55,7 +55,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
-SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
+SP_API enum sp_return sp_get_port_by_name_desc(const char *portname, struct sp_port **port_ptr, bool fetchDescriptors)
 {
 	struct sp_port *port;
 #ifndef NO_PORT_METADATA
@@ -106,7 +106,7 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 	port->bluetooth_address = NULL;
 
 #ifndef NO_PORT_METADATA
-	if ((ret = get_port_details(port)) != SP_OK) {
+	if ((ret = get_port_details(port, fetchDescriptors)) != SP_OK) {
 		sp_free_port(port);
 		return ret;
 	}
@@ -115,6 +115,11 @@ SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port *
 	*port_ptr = port;
 
 	RETURN_OK();
+}
+
+SP_API enum sp_return sp_get_port_by_name(const char *portname, struct sp_port **port_ptr)
+{
+	return sp_get_port_by_name_desc(portname, port_ptr, true);
 }
 
 SP_API char *sp_get_port_name(const struct sp_port *port)
@@ -313,7 +318,7 @@ SP_PRIV struct sp_port **list_append(struct sp_port **list,
 	if (!(tmp = realloc(list, sizeof(struct sp_port *) * (count + 2))))
 		goto fail;
 	list = tmp;
-	if (sp_get_port_by_name(portname, &list[count]) != SP_OK)
+	if (sp_get_port_by_name_desc(portname, &list[count], false) != SP_OK)
 		goto fail;
 	list[count + 1] = NULL;
 	return list;

@@ -22,7 +22,7 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
-SP_PRIV enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescriptors)
 {
 	/*
 	 * Description limited to 127 char, anything longer

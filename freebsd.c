@@ -234,7 +234,7 @@ static int populate_port_struct_from_libusb_desc(struct sp_port *const port,
 	return 0;
 }
 
-SP_PRIV enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescriptors)
 {
 	int rc;
 	struct libusb20_backend *be;

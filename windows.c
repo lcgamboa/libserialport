@@ -26,7 +26,7 @@
 #define MAX_USB_PATH ((8 * 3) + (7 * 1) + 1)
 
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
-                          const char *parent_path, DEVINST dev_inst);
+                          const char *parent_path, DEVINST dev_inst, bool fetchDescriptors);
 
 static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
 {
@@ -149,7 +149,7 @@ static char *get_string_descriptor(HANDLE hub_device, ULONG connection_index,
 }
 
 static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
-                                ULONG nb_ports, const char *parent_path, DEVINST dev_inst)
+                                ULONG nb_ports, const char *parent_path, DEVINST dev_inst, bool fetchDescriptors)
 {
 	char path[MAX_USB_PATH];
 	ULONG index = 0;
@@ -200,7 +200,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			if ((ext_hub_name = get_external_hub_name(hub_device, index))) {
 				snprintf(path, sizeof(path), "%s%ld.",
 				         parent_path, connection_info_ex->ConnectionIndex);
-				enumerate_hub(port, ext_hub_name, path, dev_inst);
+				enumerate_hub(port, ext_hub_name, path, dev_inst, fetchDescriptors);
 			}
 			free(connection_info_ex);
 		} else {
@@ -218,21 +218,24 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 			port->usb_vid = connection_info_ex->DeviceDescriptor.idVendor;
 			port->usb_pid = connection_info_ex->DeviceDescriptor.idProduct;
 
-			if (connection_info_ex->DeviceDescriptor.iManufacturer)
-				port->usb_manufacturer = get_string_descriptor(hub_device,index,
-				           connection_info_ex->DeviceDescriptor.iManufacturer);
-			if (connection_info_ex->DeviceDescriptor.iProduct)
-				port->usb_product = get_string_descriptor(hub_device, index,
-				           connection_info_ex->DeviceDescriptor.iProduct);
-			if (connection_info_ex->DeviceDescriptor.iSerialNumber) {
-				port->usb_serial = get_string_descriptor(hub_device, index,
-				           connection_info_ex->DeviceDescriptor.iSerialNumber);
-				if (port->usb_serial == NULL) {
-					//composite device, get the parent's serial number
-					char device_id[MAX_DEVICE_ID_LEN];
-					if (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS) {
-						if (CM_Get_Device_IDA(dev_inst, device_id, sizeof(device_id), 0) == CR_SUCCESS)
-							port->usb_serial = strdup(strrchr(device_id, '\\')+1);
+			if (fetchDescriptors) {
+
+				if (connection_info_ex->DeviceDescriptor.iManufacturer)
+					port->usb_manufacturer = get_string_descriptor(hub_device,index,
+					           connection_info_ex->DeviceDescriptor.iManufacturer);
+				if (connection_info_ex->DeviceDescriptor.iProduct)
+					port->usb_product = get_string_descriptor(hub_device, index,
+					           connection_info_ex->DeviceDescriptor.iProduct);
+				if (connection_info_ex->DeviceDescriptor.iSerialNumber) {
+					port->usb_serial = get_string_descriptor(hub_device, index,
+					           connection_info_ex->DeviceDescriptor.iSerialNumber);
+					if (port->usb_serial == NULL) {
+						//composite device, get the parent's serial number
+						char device_id[MAX_DEVICE_ID_LEN];
+						if (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS) {
+							if (CM_Get_Device_IDA(dev_inst, device_id, sizeof(device_id), 0) == CR_SUCCESS)
+								port->usb_serial = strdup(strrchr(device_id, '\\')+1);
+						}
 					}
 				}
 			}
@@ -244,7 +247,7 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 }
 
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
-                          const char *parent_path, DEVINST dev_inst)
+                          const char *parent_path, DEVINST dev_inst, bool fetchDescriptors)
 {
 	USB_NODE_INFORMATION hub_info;
 	HANDLE hub_device;
@@ -267,24 +270,24 @@ static void enumerate_hub(struct sp_port *port, const char *hub_name,
 	                    &hub_info, size, &hub_info, size, &size, NULL))
 		/* Enumerate the ports of the hub. */
 		enumerate_hub_ports(port, hub_device,
-		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path, dev_inst);
+		   hub_info.u.HubInformation.HubDescriptor.bNumberOfPorts, parent_path, dev_inst, fetchDescriptors);
 
 	CloseHandle(hub_device);
 }
 
 static void enumerate_host_controller(struct sp_port *port,
                                       HANDLE host_controller_device,
-                                      DEVINST dev_inst)
+                                      DEVINST dev_inst, bool fetchDescriptors)
 {
 	char *root_hub_name;
 
 	if ((root_hub_name = get_root_hub_name(host_controller_device))) {
-		enumerate_hub(port, root_hub_name, "", dev_inst);
+		enumerate_hub(port, root_hub_name, "", dev_inst, fetchDescriptors);
 		free(root_hub_name);
 	}
 }
 
-static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
+static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match, bool fetchDescriptors)
 {
 	HDEVINFO device_info;
 	SP_DEVINFO_DATA device_info_data;
@@ -334,7 +337,7 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 		                                    GENERIC_WRITE, FILE_SHARE_WRITE,
 		                                    NULL, OPEN_EXISTING, 0, NULL);
 		if (host_controller_device != INVALID_HANDLE_VALUE) {
-			enumerate_host_controller(port, host_controller_device, dev_inst_match);
+			enumerate_host_controller(port, host_controller_device, dev_inst_match, fetchDescriptors);
 			CloseHandle(host_controller_device);
 		}
 		free(device_detail_data);
@@ -344,7 +347,7 @@ static void get_usb_details(struct sp_port *port, DEVINST dev_inst_match)
 	return;
 }
 
-SP_PRIV enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescriptors)
 {
 	/*
 	 * Description limited to 127 char, anything longer
@@ -465,7 +468,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 			CloseHandle(handle);
 
 			/* Retrieve USB device details from the device descriptor. */
-			get_usb_details(port, device_info_data.DevInst);
+			get_usb_details(port, device_info_data.DevInst, fetchDescriptors);
 		}
 		break;
 	}

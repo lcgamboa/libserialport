@@ -22,7 +22,7 @@
 #include "libserialport.h"
 #include "libserialport_internal.h"
 
-SP_PRIV enum sp_return get_port_details(struct sp_port *port)
+SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescriptors)
 {
 	/*
 	 * Description limited to 127 char, anything longer
@@ -152,37 +152,40 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port)
 		if (cf_product)
 			CFRelease(cf_product);
 
-		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
-		         CFSTR("USB Vendor Name"), kCFAllocatorDefault,
-		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
-			if (CFStringGetCString(cf_property, manufacturer, sizeof(manufacturer),
-			                       kCFStringEncodingASCII)) {
-				DEBUG_FMT("Found manufacturer %s", manufacturer);
-				port->usb_manufacturer = strdup(manufacturer);
-			}
-			CFRelease(cf_property);
-		}
+		if (fetchDescriptors == true) {
 
-		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
-		         CFSTR("USB Product Name"), kCFAllocatorDefault,
-		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
-			if (CFStringGetCString(cf_property, product, sizeof(product),
-			                       kCFStringEncodingASCII)) {
-				DEBUG_FMT("Found product name %s", product);
-				port->usb_product = strdup(product);
+			if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+			         CFSTR("USB Vendor Name"), kCFAllocatorDefault,
+			         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+				if (CFStringGetCString(cf_property, manufacturer, sizeof(manufacturer),
+				                       kCFStringEncodingASCII)) {
+					DEBUG_FMT("Found manufacturer %s", manufacturer);
+					port->usb_manufacturer = strdup(manufacturer);
+				}
+				CFRelease(cf_property);
 			}
-			CFRelease(cf_property);
-		}
 
-		if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
-		         CFSTR("USB Serial Number"), kCFAllocatorDefault,
-		         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
-			if (CFStringGetCString(cf_property, serial, sizeof(serial),
-			                       kCFStringEncodingASCII)) {
-				DEBUG_FMT("Found serial number %s", serial);
-				port->usb_serial = strdup(serial);
+			if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+			         CFSTR("USB Product Name"), kCFAllocatorDefault,
+			         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+				if (CFStringGetCString(cf_property, product, sizeof(product),
+				                       kCFStringEncodingASCII)) {
+					DEBUG_FMT("Found product name %s", product);
+					port->usb_product = strdup(product);
+				}
+				CFRelease(cf_property);
 			}
-			CFRelease(cf_property);
+
+			if ((cf_property = IORegistryEntrySearchCFProperty(ioport,kIOServicePlane,
+			         CFSTR("USB Serial Number"), kCFAllocatorDefault,
+			         kIORegistryIterateRecursively | kIORegistryIterateParents))) {
+				if (CFStringGetCString(cf_property, serial, sizeof(serial),
+				                       kCFStringEncodingASCII)) {
+					DEBUG_FMT("Found serial number %s", serial);
+					port->usb_serial = strdup(serial);
+				}
+				CFRelease(cf_property);
+			}
 		}
 
 		IOObjectRelease(ioport);
