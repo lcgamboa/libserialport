@@ -116,6 +116,7 @@ struct sp_port {
 	BYTE pending_byte;
 	BOOL writing;
 	BOOL wait_running;
+	BOOL composite;
 #else
 	int fd;
 #endif
