@@ -28,32 +28,12 @@
 static void enumerate_hub(struct sp_port *port, const char *hub_name,
                           const char *parent_path, DEVINST dev_inst, bool fetchDescriptors);
 
-static char *wc_to_utf8(PWCHAR wc_buffer, ULONG size)
-{
-	WCHAR wc_str[(size / sizeof(WCHAR)) + 1];
-	char *utf8_str;
-
-	/* Zero-terminate the wide char string. */
-	memcpy(wc_str, wc_buffer, size);
-	wc_str[sizeof(wc_str) - 1] = 0;
-
-	/* Compute the size of the UTF-8 converted string. */
-	if (!(size = WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
-	                                 NULL, 0, NULL, NULL)))
-		return NULL;
-
-	/* Allocate UTF-8 output buffer. */
-	if (!(utf8_str = malloc(size)))
-		return NULL;
-
-	/* Actually converted to UTF-8. */
-	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, wc_str, -1,
-	                         utf8_str, size, NULL, NULL)) {
-		free(utf8_str);
-		return NULL;
-	}
-
-	return utf8_str;
+static char* wc_to_utf8(const wchar_t* wc, ULONG size) {
+	int ulen = WideCharToMultiByte(CP_UTF8, 0, wc, -1, NULL, 0, NULL, NULL);
+	char * ubuf = malloc(ulen + 1);
+	WideCharToMultiByte(CP_UTF8, 0, wc, -1, ubuf, ulen, NULL, NULL);
+	ubuf[ulen] = 0;
+	return ubuf;
 }
 
 static char *get_root_hub_name(HANDLE host_controller)
@@ -220,26 +200,30 @@ static void enumerate_hub_ports(struct sp_port *port, HANDLE hub_device,
 
 			if (fetchDescriptors) {
 
-				if (connection_info_ex->DeviceDescriptor.iManufacturer)
+				if (connection_info_ex->DeviceDescriptor.iManufacturer) {
 					port->usb_manufacturer = get_string_descriptor(hub_device,index,
 					           connection_info_ex->DeviceDescriptor.iManufacturer);
-				if (connection_info_ex->DeviceDescriptor.iProduct)
+				}
+				if (connection_info_ex->DeviceDescriptor.iProduct) {
 					port->usb_product = get_string_descriptor(hub_device, index,
 					           connection_info_ex->DeviceDescriptor.iProduct);
+				}
 				if (connection_info_ex->DeviceDescriptor.iSerialNumber) {
 					port->usb_serial = get_string_descriptor(hub_device, index,
 					           connection_info_ex->DeviceDescriptor.iSerialNumber);
-					if (port->usb_serial == NULL) {
+					if (port->usb_serial == NULL && port->composite) {
 						//composite device, get the parent's serial number
 						char device_id[MAX_DEVICE_ID_LEN];
 						if (CM_Get_Parent(&dev_inst, dev_inst, 0) == CR_SUCCESS) {
-							if (CM_Get_Device_IDA(dev_inst, device_id, sizeof(device_id), 0) == CR_SUCCESS)
-								port->usb_serial = strdup(strrchr(device_id, '\\')+1);
+							if (CM_Get_Device_IDA(dev_inst, device_id, sizeof(device_id), 0) == CR_SUCCESS) {
+								if (strlen(device_id) > 0) {
+									port->usb_serial = strdup(strrchr(device_id, '\\')+1);
+								}
+							}
 						}
 					}
 				}
 			}
-
 			free(connection_info_ex);
 			break;
 		}
