@@ -107,7 +107,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescript
 		} else {
 			DEBUG("No description for this device");
 		}
-
+#if 0
 		cf_bus = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
 		                                         CFSTR("USBBusNumber"),
 		                                         kCFAllocatorDefault,
@@ -118,9 +118,11 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescript
 		                                         kCFAllocatorDefault,
 		                                         kIORegistryIterateRecursively
 		                                         | kIORegistryIterateParents);
-		if (cf_bus && cf_address &&
-		    CFNumberGetValue(cf_bus    , kCFNumberIntType, &bus) &&
-		    CFNumberGetValue(cf_address, kCFNumberIntType, &address)) {
+		if (cf_bus && cf_address) {
+			DEBUG_FMT("CFTypeRef type is: %s\n",CFStringGetCStringPtr(CFCopyTypeIDDescription(CFGetTypeID(cf_bus)),kCFStringEncodingUTF8));
+			DEBUG_FMT("CFTypeRef type is: %s\n",CFStringGetCStringPtr(CFCopyTypeIDDescription(CFGetTypeID(cf_address)),kCFStringEncodingUTF8));
+		    CFNumberGetValue(cf_bus    , kCFNumberIntType, &bus);
+		    CFNumberGetValue(cf_address, kCFNumberIntType, &address);
 			DEBUG_FMT("Found matching USB bus:address %03d:%03d", bus, address);
 			port->usb_bus = bus;
 			port->usb_address = address;
@@ -129,7 +131,7 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescript
 			CFRelease(cf_bus);
 		if (cf_address)
 			CFRelease(cf_address);
-
+#endif
 		cf_vendor = IORegistryEntrySearchCFProperty(ioport, kIOServicePlane,
 		                                         CFSTR("idVendor"),
 		                                         kCFAllocatorDefault,
