@@ -55,7 +55,7 @@ static enum sp_return get_config(struct sp_port *port, struct port_data *data,
 static enum sp_return set_config(struct sp_port *port, struct port_data *data,
 	const struct sp_port_config *config);
 
-SP_API enum sp_return sp_get_port_by_name_desc(const char *portname, struct sp_port **port_ptr, bool fetchDescriptors)
+static enum sp_return sp_get_port_by_name_desc(const char *portname, struct sp_port **port_ptr, bool fetchDescriptors)
 {
 	struct sp_port *port;
 #ifndef NO_PORT_METADATA
