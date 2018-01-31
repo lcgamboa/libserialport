@@ -1,3 +1,5 @@
+libserialport - With support to tty0tty virtual ports
+
 -------------------------------------------------------------------------------
 libserialport: cross-platform library for accessing serial ports
 -------------------------------------------------------------------------------
