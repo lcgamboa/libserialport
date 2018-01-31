@@ -58,6 +58,12 @@ SP_PRIV enum sp_return get_port_details(struct sp_port *port, bool fetchDescript
 		port->transport = SP_TRANSPORT_BLUETOOTH;
 	else if (strstr(file_name, "usb"))
 		port->transport = SP_TRANSPORT_USB;
+	else if (strstr(file_name, "tnt"))
+	{
+		port->transport = SP_TRANSPORT_USB;
+	        port->usb_vid=0;
+		port->usb_pid=0;
+	}
 
 	if (port->transport == SP_TRANSPORT_USB) {
 		for (i = 0; i < 5; i++) {
@@ -218,7 +224,7 @@ SP_PRIV enum sp_return list_ports(struct sp_port ***list)
 		if (len <= 0 || len >= (int)(sizeof(target) - 1))
 			continue;
 		target[len] = 0;
-		if (strstr(target, "virtual"))
+		if (strstr(target, "virtual") && !strstr(target,"tnt"))
 			continue;
 		snprintf(name, sizeof(name), "/dev/%s", entry.d_name);
 		DEBUG_FMT("Found device %s", name);
